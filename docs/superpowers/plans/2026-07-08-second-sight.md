@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Minimum macOS: **14.0** (`platforms: [.macOS(.v14)]`).
-- Build with `swift build` / test with `swift test` only — **never `xcodebuild`** (not installed).
+- Build with `swift build` / test with `Scripts/test.sh` only — **never `xcodebuild`** (not installed) and never bare `swift test` (it silently runs zero tests on this machine; see Task 1).
 - **Zero third-party dependencies.** Apple frameworks only.
 - **Zero TCC permissions** — no Accessibility, no Screen Recording. Focused-screen detection uses only `CGWindowListCopyWindowInfo` bounds (public, unprompted) with a mouse-position fallback.
 - Tests use **Swift Testing** (`import Testing`, `@Test`, `#expect`) — XCTest is unavailable on this machine.
@@ -71,11 +71,12 @@ Tests/SecondSightTests/
 
 ### Task 1: Package scaffold + toolchain verification
 
-Verifies the critical assumption that `swift test` (Swift Testing) works with Command Line Tools alone. **If Step 4 fails, STOP and report** — the fallback is installing full Xcode, which the user must decide on.
+Verifies the critical assumption that Swift Testing works with Command Line Tools alone. **Finding from execution:** bare `swift test` FAILS (`no such module 'Testing'`) — CLT ships `Testing.framework` at `/Library/Developer/CommandLineTools/Library/Developer/Frameworks`, outside the default search paths. The flags must be passed on the command line (not in `Package.swift`) because SwiftPM's synthesized test runner is compiled with `#if canImport(Testing)` and manifest settings don't reach that synthesized module — manifest-only flags produce a build that silently runs zero tests. `Scripts/test.sh` encapsulates the working invocation (verified on this machine). **If Step 3 fails anyway, STOP and report.**
 
 **Files:**
 - Create: `Package.swift`
 - Create: `.gitignore`
+- Create: `Scripts/test.sh` (executable)
 - Create: `Sources/SecondSight/main.swift` (stub)
 - Test: `Tests/SecondSightTests/SmokeTests.swift`
 
@@ -136,6 +137,36 @@ import Testing
 }
 ```
 
+`Scripts/test.sh` (then `chmod +x Scripts/test.sh`):
+
+```bash
+#!/bin/bash
+# swift test wrapper for machines with Command Line Tools only (no Xcode).
+#
+# CLT ships Testing.framework outside the compiler's default search paths,
+# and SwiftPM's synthesized test runner is compiled with
+# `#if canImport(Testing)` — so the search paths must be injected from the
+# command line, where they reach every compiled module. Package.swift
+# settings cannot do this (they don't apply to the synthesized runner,
+# which then silently runs zero tests).
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+CLT_FRAMEWORKS=/Library/Developer/CommandLineTools/Library/Developer/Frameworks
+CLT_TESTING_LIBS=/Library/Developer/CommandLineTools/Library/Developer/usr/lib
+
+if [[ -d "$CLT_FRAMEWORKS/Testing.framework" ]]; then
+    exec swift test \
+        -Xswiftc -F -Xswiftc "$CLT_FRAMEWORKS" \
+        -Xlinker -F -Xlinker "$CLT_FRAMEWORKS" \
+        -Xlinker -rpath -Xlinker "$CLT_FRAMEWORKS" \
+        -Xlinker -rpath -Xlinker "$CLT_TESTING_LIBS" \
+        "$@"
+fi
+# Full Xcode installed: no extra flags needed.
+exec swift test "$@"
+```
+
 - [ ] **Step 2: Build**
 
 Run: `swift build`
@@ -143,14 +174,14 @@ Expected: `Build complete!`
 
 - [ ] **Step 3: Run tests**
 
-Run: `swift test`
-Expected: `✔ Test toolchainRunsSwiftTesting() passed` / `Test run with 1 test passed`. **If this fails with an XCTest/Testing-not-found error, STOP the plan and report to the user** (Command Line Tools may lack the testing library; user decides whether to install Xcode).
+Run: `Scripts/test.sh`
+Expected: `✔ Test toolchainRunsSwiftTesting() passed` and `Test run with 1 test in 0 suites passed`. **If this fails, STOP the plan and report to the user** (user decides whether to install Xcode).
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add Package.swift .gitignore Sources Tests
-git commit -m "chore: scaffold SwiftPM package, verify swift test works with CLT"
+git add Package.swift .gitignore Scripts/test.sh Sources Tests
+git commit -m "chore: scaffold SwiftPM package with CLT-compatible test wrapper"
 ```
 
 ---
@@ -253,7 +284,7 @@ private let clock = CGSize(width: 220, height: 90)
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `swift test`
+Run: `Scripts/test.sh`
 Expected: FAIL — compile error, `cannot find 'PositionSampler' in scope`.
 
 - [ ] **Step 3: Write the implementation**
@@ -310,7 +341,7 @@ enum PositionSampler {
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `swift test`
+Run: `Scripts/test.sh`
 Expected: PASS — all `PositionSampler` tests green.
 
 - [ ] **Step 5: Commit**
@@ -417,7 +448,7 @@ import Testing
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `swift test`
+Run: `Scripts/test.sh`
 Expected: FAIL — compile error, `cannot find 'RGBAColor' in scope`.
 
 - [ ] **Step 3: Write the implementation**
@@ -502,7 +533,7 @@ enum ClockPalette {
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `swift test`
+Run: `Scripts/test.sh`
 Expected: PASS — all color tests green.
 
 - [ ] **Step 5: Commit**
@@ -598,7 +629,7 @@ private func makeDefaults() -> UserDefaults {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `swift test`
+Run: `Scripts/test.sh`
 Expected: FAIL — compile error, `cannot find 'SettingsStore' in scope`.
 
 - [ ] **Step 3: Write the implementation**
@@ -691,7 +722,7 @@ final class SettingsStore: ObservableObject {
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `swift test`
+Run: `Scripts/test.sh`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -807,7 +838,7 @@ private let epoch = Date(timeIntervalSince1970: 1_000_000)
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `swift test`
+Run: `Scripts/test.sh`
 Expected: FAIL — compile error, `cannot find 'SnoozeController' in scope`.
 
 - [ ] **Step 3: Write the implementation**
@@ -904,7 +935,7 @@ final class SnoozeController {
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `swift test`
+Run: `Scripts/test.sh`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -954,7 +985,7 @@ import Testing
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `swift test`
+Run: `Scripts/test.sh`
 Expected: FAIL — compile error, `cannot find 'ScreenCoordinateConverter' in scope`.
 
 - [ ] **Step 3: Write the implementation**
@@ -1027,7 +1058,7 @@ final class FocusedScreenLocator {
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `swift test`
+Run: `Scripts/test.sh`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -1153,7 +1184,7 @@ struct ClockView: View {
 
 - [ ] **Step 2: Build and run existing tests**
 
-Run: `swift build && swift test`
+Run: `swift build && Scripts/test.sh`
 Expected: build succeeds, all prior tests still PASS.
 
 - [ ] **Step 3: Commit**
@@ -1285,7 +1316,7 @@ final class ClockPanelController {
 
 - [ ] **Step 2: Build and run existing tests**
 
-Run: `swift build && swift test`
+Run: `swift build && Scripts/test.sh`
 Expected: build succeeds, all prior tests still PASS.
 
 - [ ] **Step 3: Commit**
@@ -1406,7 +1437,7 @@ final class MovementEngine {
 
 - [ ] **Step 2: Build and run existing tests**
 
-Run: `swift build && swift test`
+Run: `swift build && Scripts/test.sh`
 Expected: build succeeds, all prior tests still PASS.
 
 - [ ] **Step 3: Commit**
@@ -1550,7 +1581,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
 - [ ] **Step 2: Build and run existing tests**
 
-Run: `swift build && swift test`
+Run: `swift build && Scripts/test.sh`
 Expected: build succeeds, all prior tests still PASS.
 
 - [ ] **Step 3: Commit**
@@ -1739,7 +1770,7 @@ final class SettingsWindowController {
 
 - [ ] **Step 2: Build and run existing tests**
 
-Run: `swift build && swift test`
+Run: `swift build && Scripts/test.sh`
 Expected: build succeeds, all prior tests still PASS.
 
 - [ ] **Step 3: Commit**
@@ -1845,7 +1876,7 @@ app.run()
 
 - [ ] **Step 2: Build and run all tests**
 
-Run: `swift build && swift test`
+Run: `swift build && Scripts/test.sh`
 Expected: build succeeds, all tests PASS.
 
 - [ ] **Step 3: Launch the app live**
@@ -1970,7 +2001,7 @@ Requires macOS 14+ and the Swift toolchain from Xcode Command Line Tools
     Scripts/build-app.sh --install
     open /Applications/SecondSight.app
 
-For development: `swift run` · tests: `swift test`
+For development: `swift run` · tests: `Scripts/test.sh`
 
 ## Use
 
