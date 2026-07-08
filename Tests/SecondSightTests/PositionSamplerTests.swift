@@ -45,6 +45,19 @@ private let clock = CGSize(width: 220, height: 90)
     #expect(p == CGPoint(x: tiny.minX + 24, y: tiny.minY + 24))
 }
 
+@Test func screenSmallerThanTwiceInsetPinsWithoutCrashing() {
+    var rng = SeededRNG(seed: 5)
+    let tiny = CGRect(x: 0, y: 0, width: 40, height: 40) // insetBy returns .null
+    let p = PositionSampler.samplePosition(in: tiny, clockSize: clock, previous: nil, using: &rng)
+    #expect(p == CGPoint(x: 24, y: 24))
+}
+
+@Test func zeroSizedScreenPinsWithoutCrashing() {
+    var rng = SeededRNG(seed: 6)
+    let p = PositionSampler.samplePosition(in: .zero, clockSize: clock, previous: .zero, using: &rng)
+    #expect(p == CGPoint(x: 24, y: 24))
+}
+
 @Test func relaxesMinDistanceWhenUnsatisfiableButStaysInBounds() {
     var rng = SeededRNG(seed: 9)
     // Usable area barely fits the clock, so many candidates are near the previous point.

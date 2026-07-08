@@ -17,11 +17,13 @@ enum PositionSampler {
         using rng: inout some RandomNumberGenerator
     ) -> CGPoint {
         let usable = visibleFrame.insetBy(dx: inset, dy: inset)
+        let fallback = CGPoint(x: visibleFrame.minX + inset, y: visibleFrame.minY + inset)
+        // insetBy returns CGRect.null (infinite coords) when the frame is
+        // smaller than 2×inset in either axis — check before using it.
+        guard !usable.isNull else { return fallback }
         let maxX = usable.maxX - clockSize.width
         let maxY = usable.maxY - clockSize.height
-        guard maxX >= usable.minX, maxY >= usable.minY else {
-            return CGPoint(x: usable.minX, y: usable.minY)
-        }
+        guard maxX >= usable.minX, maxY >= usable.minY else { return fallback }
 
         let minDistance = visibleFrame.width * minDistanceFraction
         var farthest = CGPoint(x: usable.minX, y: usable.minY)
