@@ -2,8 +2,10 @@ import Foundation
 import Testing
 @testable import SecondSight
 
+// Suites are throwaway; domain removed on next creation. Stray plists in
+// ~/Library/Preferences are prefixed com.kenmiller.secondsight.tests for easy cleanup.
 private func makeDefaults() -> UserDefaults {
-    let name = "SettingsStoreTests-\(UUID().uuidString)"
+    let name = "com.kenmiller.secondsight.tests.SettingsStoreTests-\(UUID().uuidString)"
     let defaults = UserDefaults(suiteName: name)!
     defaults.removePersistentDomain(forName: name)
     return defaults

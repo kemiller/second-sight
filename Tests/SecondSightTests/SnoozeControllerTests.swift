@@ -2,8 +2,10 @@ import Foundation
 import Testing
 @testable import SecondSight
 
+// Suites are throwaway; domain removed on next creation. Stray plists in
+// ~/Library/Preferences are prefixed com.kenmiller.secondsight.tests for easy cleanup.
 private func makeDefaults() -> UserDefaults {
-    let name = "SnoozeTests-\(UUID().uuidString)"
+    let name = "com.kenmiller.secondsight.tests.SnoozeControllerTests-\(UUID().uuidString)"
     let defaults = UserDefaults(suiteName: name)!
     defaults.removePersistentDomain(forName: name)
     return defaults
@@ -82,6 +84,18 @@ private let epoch = Date(timeIntervalSince1970: 1_000_000)
     c.snooze(for: 3600)
     c.resume()
     #expect(SnoozeController(defaults: defaults, now: { epoch }).state == .active)
+}
+
+@Test func switchingSnoozeKindsDoesNotLeakPriorStateAcrossRestart() {
+    let defaults = makeDefaults()
+    let c = SnoozeController(defaults: defaults, now: { epoch })
+    c.snooze(for: 3600)
+    c.snoozeIndefinitely()
+    #expect(SnoozeController(defaults: defaults, now: { epoch }).state == .snoozedIndefinitely)
+
+    c.snooze(for: 900)
+    let restored = SnoozeController(defaults: defaults, now: { epoch })
+    #expect(restored.state == .snoozed(until: epoch.addingTimeInterval(900)))
 }
 
 @Test func onChangeFiresForEachTransition() {

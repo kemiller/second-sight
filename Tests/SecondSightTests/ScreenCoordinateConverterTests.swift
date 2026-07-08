@@ -10,7 +10,7 @@ import Testing
     #expect(appKit == CGRect(x: 50, y: 700, width: 400, height: 200))
 }
 
-@Test func roundTripsAtScreenTop() {
+@Test func convertsMenuBarAdjacentWindow() {
     let cg = CGRect(x: 0, y: 0, width: 100, height: 50) // menu-bar-adjacent window
     let appKit = ScreenCoordinateConverter.appKitRect(fromCGBounds: cg, primaryScreenHeight: 900)
     #expect(appKit.origin.y == 850)

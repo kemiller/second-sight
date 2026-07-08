@@ -58,6 +58,14 @@ private let clock = CGSize(width: 220, height: 90)
     #expect(p == CGPoint(x: 24, y: 24))
 }
 
+@Test func clockExactlyFillingUsableAreaPinsToInsetOrigin() {
+    var rng = SeededRNG(seed: 8)
+    // Usable area (after 24pt insets) exactly equals the clock size.
+    let frame = CGRect(x: 0, y: 0, width: clock.width + 48, height: clock.height + 48)
+    let p = PositionSampler.samplePosition(in: frame, clockSize: clock, previous: nil, using: &rng)
+    #expect(p == CGPoint(x: 24, y: 24))
+}
+
 @Test func relaxesMinDistanceWhenUnsatisfiableButStaysInBounds() {
     var rng = SeededRNG(seed: 9)
     // Usable area barely fits the clock, so many candidates are near the previous point.
