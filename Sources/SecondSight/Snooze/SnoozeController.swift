@@ -63,9 +63,16 @@ final class SnoozeController {
     private func restore() {
         if defaults.bool(forKey: Keys.snoozeIndefinite) {
             state = .snoozedIndefinitely
-        } else if let until = defaults.object(forKey: Keys.snoozeUntil) as? Date, until > now() {
-            state = .snoozed(until: until)
-            scheduleResume(at: until)
+        } else if let until = defaults.object(forKey: Keys.snoozeUntil) as? Date {
+            if until > now() {
+                state = .snoozed(until: until)
+                scheduleResume(at: until)
+            } else {
+                // Expired while the app wasn't running — clear the stale keys
+                // so a backward clock change can't resurrect a dead snooze.
+                defaults.removeObject(forKey: Keys.snoozeUntil)
+                defaults.set(false, forKey: Keys.snoozeIndefinite)
+            }
         }
     }
 

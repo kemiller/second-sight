@@ -55,6 +55,21 @@ private let epoch = Date(timeIntervalSince1970: 1_000_000)
     #expect(restarted.state == .active)
 }
 
+@Test func expiredSnoozeRestoreClearsStaleKeys() {
+    let defaults = makeDefaults()
+    let c = SnoozeController(defaults: defaults, now: { epoch })
+    c.snooze(for: 900)
+
+    // Restoring after expiry clears the persisted keys...
+    _ = SnoozeController(defaults: defaults, now: { epoch.addingTimeInterval(901) })
+    #expect(defaults.object(forKey: "snoozeUntil") == nil)
+
+    // ...so even a controller whose clock is rolled back before the old
+    // deadline cannot resurrect the dead snooze.
+    let rolledBack = SnoozeController(defaults: defaults, now: { epoch })
+    #expect(rolledBack.state == .active)
+}
+
 @Test func indefiniteSnoozeSurvivesRestart() {
     let defaults = makeDefaults()
     SnoozeController(defaults: defaults).snoozeIndefinitely()
