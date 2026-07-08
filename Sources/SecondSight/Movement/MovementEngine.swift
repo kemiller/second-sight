@@ -36,6 +36,10 @@ final class MovementEngine {
             }
             .store(in: &cancellables)
 
+        // Known gap: moving focus between windows of the SAME app on different
+        // screens fires no activation notification, so that case corrects on
+        // the next tick instead of immediately. Detecting it would require
+        // polling; not worth it for a zero-permission app.
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.didActivateApplicationNotification)
             .sink { [weak self] _ in self?.relocateIfFocusMovedScreens() }
@@ -77,10 +81,11 @@ final class MovementEngine {
 
     private func scheduleTimer() {
         timer?.invalidate()
-        let newTimer = Timer.scheduledTimer(withTimeInterval: settings.moveInterval, repeats: true) { [weak self] _ in
+        let newTimer = Timer(timeInterval: settings.moveInterval, repeats: true) { [weak self] _ in
             self?.relocateNow()
         }
         newTimer.tolerance = settings.moveInterval * 0.1
+        RunLoop.main.add(newTimer, forMode: .common)
         timer = newTimer
     }
 }

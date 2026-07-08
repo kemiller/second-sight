@@ -78,7 +78,11 @@ final class ClockPanelController {
     }
 
     private func fadeIn(at origin: CGPoint) {
-        panel.setFrameOrigin(origin)
+        // Stomp any still-running glide so it can't drag the panel to a stale target.
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0
+            panel.animator().setFrame(CGRect(origin: origin, size: panel.frame.size), display: false)
+        }
         panel.alphaValue = 0
         panel.orderFrontRegardless()
         NSAnimationContext.runAnimationGroup { context in

@@ -29,14 +29,14 @@ struct SettingsView: View {
                 }
 
                 LabeledContent("Size") {
-                    Slider(value: $settings.fontSize, in: 24...160)
+                    Slider(value: $settings.fontSize, in: SettingsStore.fontSizeRange)
                     Text("\(Int(settings.fontSize)) pt")
                         .monospacedDigit()
                         .frame(width: 52, alignment: .trailing)
                 }
 
                 LabeledContent("Opacity") {
-                    Slider(value: $settings.opacity, in: 0.1...1.0)
+                    Slider(value: $settings.opacity, in: SettingsStore.opacityRange)
                     Text("\(Int(settings.opacity * 100)) %")
                         .monospacedDigit()
                         .frame(width: 52, alignment: .trailing)
@@ -87,6 +87,11 @@ struct SettingsView: View {
         .onAppear {
             if isBundledApp {
                 launchAtLogin = SMAppService.mainApp.status == .enabled
+            }
+            // Spec §5: if the stored font no longer exists, reflect the actual
+            // font in use (system) rather than a blank selection.
+            if let name = settings.fontName, NSFont(name: name, size: 12) == nil {
+                settings.fontName = nil
             }
         }
     }

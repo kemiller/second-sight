@@ -18,7 +18,7 @@ struct ClockView: View {
     }
 
     private var displayColor: Color {
-        let rgba = clockState.paletteColor
+        let rgba = (settings.rotateColors ? clockState.paletteColor : nil)
             ?? RGBAColor(hex: settings.colorHex)
             ?? .softWhite
         return rgba.swiftUIColor

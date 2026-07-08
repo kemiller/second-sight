@@ -5,6 +5,8 @@ import Foundation
 /// immediately; consumers react via the @Published Combine publishers.
 final class SettingsStore: ObservableObject {
     static let intervalPresets: [TimeInterval] = [30, 60, 120, 300, 600, 900, 1800, 3600]
+    static let fontSizeRange: ClosedRange<Double> = 24...160
+    static let opacityRange: ClosedRange<Double> = 0.10...1.0
 
     private enum Keys {
         static let moveInterval = "moveInterval"
@@ -18,9 +20,9 @@ final class SettingsStore: ObservableObject {
     private enum Defaults {
         static let moveInterval: TimeInterval = 300
         static let fontSize: Double = 64
-        static let fontSizeRange: ClosedRange<Double> = 24...160
+        static let fontSizeRange = SettingsStore.fontSizeRange
         static let opacity: Double = 0.35
-        static let opacityRange: ClosedRange<Double> = 0.10...1.0
+        static let opacityRange = SettingsStore.opacityRange
     }
 
     @Published var moveInterval: TimeInterval {
