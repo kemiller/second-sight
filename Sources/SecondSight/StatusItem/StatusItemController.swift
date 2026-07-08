@@ -29,7 +29,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     func refresh() {
         let snoozed = snooze.state != .active
-        let symbol = snoozed ? "clock.badge.xmark" : "clock"
+        let symbol = snoozed ? "eye.slash" : "eye"
         let image = NSImage(
             systemSymbolName: symbol,
             accessibilityDescription: snoozed ? "Second Sight (snoozed)" : "Second Sight"

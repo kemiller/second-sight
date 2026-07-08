@@ -8,6 +8,8 @@
     <string>Second Sight</string>
     <key>CFBundleExecutable</key>
     <string>SecondSight</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>com.kenmiller.secondsight</string>
     <key>CFBundleInfoDictionaryVersion</key>
