@@ -12,6 +12,7 @@ final class ClockPanelController {
     private let hostingView: NSHostingView<ClockView>
     private let settings: SettingsStore
     private var cancellables: Set<AnyCancellable> = []
+    private var hideGeneration = 0
 
     init(settings: SettingsStore) {
         self.settings = settings
@@ -47,8 +48,16 @@ final class ClockPanelController {
     var currentOrigin: CGPoint? { panel.isVisible ? panel.frame.origin : nil }
 
     func moveOrShow(at origin: CGPoint) {
+        hideGeneration += 1  // cancel any in-flight hide's pending orderOut
         if panel.isVisible {
             glide(to: origin)
+            // A cancelled mid-fade hide leaves alpha below 1 — bring it back.
+            if panel.alphaValue < 1 {
+                NSAnimationContext.runAnimationGroup { context in
+                    context.duration = 0.5
+                    panel.animator().alphaValue = 1
+                }
+            }
         } else {
             fadeIn(at: origin)
         }
@@ -56,12 +65,15 @@ final class ClockPanelController {
 
     func hide() {
         guard panel.isVisible else { return }
+        hideGeneration += 1
+        let generation = hideGeneration
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.4
             panel.animator().alphaValue = 0
-        }, completionHandler: { [panel] in
-            panel.orderOut(nil)
-            panel.alphaValue = 1
+        }, completionHandler: { [weak self] in
+            guard let self, self.hideGeneration == generation else { return }
+            self.panel.orderOut(nil)
+            self.panel.alphaValue = 1
         })
     }
 
